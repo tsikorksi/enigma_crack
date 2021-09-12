@@ -2,34 +2,42 @@ package main
 
 import (
 	"fmt"
+	"github.com/emedvedev/enigma"
 	"io/ioutil"
 	"strconv"
 	"strings"
 )
 
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const englishIOC = 0.06577359255736807
+
 // IOC of english text, calculated using one time script from the corpus 'The Count of Monte Cristo'
 // 0.06577359255736807
 
 func singleSwap(content string, swap string) float64 {
-	var initial = calcIC(content)
+	//var initial = calcIC(content)
 	content = strings.ReplaceAll(content, swap[0:1], swap[1:2])
 	var final = calcIC(content)
-	return final - initial
+	return final
 }
 
 func findSwaps(content string) {
 	//var stecker = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	fmt.Println(singleSwap(content, "AB"))
-	fmt.Println(singleSwap(content, "AC"))
-	fmt.Println(singleSwap(content, "AD"))
-	fmt.Println(singleSwap(content, "AE"))
+	var scoreMap = make(map[string]float64)
+	for _, letter := range alphabet {
+		for _, letter2 := range alphabet {
+			var score = singleSwap(content, string(letter)+string(letter2))
+			scoreMap[string(letter)+string(letter2)] = score
+		}
+
+	}
+	fmt.Println(scoreMap)
 }
 
 func calcIC(text string) float64 {
 
 	text = strings.ToUpper(text)
 	text = strings.ReplaceAll(text, " ", "")
-	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	n := float64(len(text))
 	var sum = 0.0
 	for _, letter := range alphabet {
@@ -65,6 +73,35 @@ func readFile(filename string) string {
 		fmt.Println("File read error")
 	}
 	return string(content)
+}
+
+func enigmaSimulate() {
+	config := make([]enigma.RotorConfig, 4)
+	config[0] = enigma.RotorConfig{
+		ID:    "",
+		Start: 0,
+		Ring:  1,
+	}
+	config[1] = enigma.RotorConfig{
+		ID:    "",
+		Start: 0,
+		Ring:  1,
+	}
+	config[2] = enigma.RotorConfig{
+		ID:    "IV",
+		Start: "B"[0],
+		Ring:  1,
+	}
+	config[3] = enigma.RotorConfig{
+		ID:    "III",
+		Start: "Q"[0],
+		Ring:  16,
+	}
+
+	plugs := make([]string, 1)
+
+	enigma.NewEnigma(config, "C-thin", plugs)
+
 }
 
 func main() {
