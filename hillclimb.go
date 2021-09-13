@@ -9,7 +9,8 @@ import (
 )
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-const englishIOC = 0.06577359255736807
+
+//const englishIOC = 0.06577359255736807
 
 // IOC of english text, calculated using one time script from the corpus 'The Count of Monte Cristo'
 // 0.06577359255736807
@@ -73,18 +74,75 @@ func readFile(filename string) string {
 	}
 	return string(content)
 }
-func enigmaSimulate() {
+
+// Brute force a most likely rotor config
+func rotorBrute(content string) []enigma.RotorConfig {
+	var rotors = [8]string{"I", "II", "V", "VI", "VII", "VIII", "Beta", "Gamma"}
+	var max = calcIC(content)
+	var rotorA enigma.RotorConfig
+	var rotorB = enigma.RotorConfig{
+		ID:    "IV",
+		Start: "B"[0],
+		Ring:  1,
+	}
+	var rotorAFinal enigma.RotorConfig
+	var rotorBFinal enigma.RotorConfig
+	for _, rotor := range rotors {
+		for _, letter := range alphabet {
+			for i := 0; i < 27; i++ {
+				rotorA = enigma.RotorConfig{
+					ID:    rotor,
+					Start: string(letter)[0],
+					Ring:  i,
+				}
+				var local = calcIC(enigmaSimulate(rotorA, rotorB, content))
+				if local > max {
+					max = local
+					rotorAFinal = rotorA
+					//rotorBFinal = rotorB
+				}
+			}
+		}
+	}
+	for _, rotor2 := range rotors {
+		for _, letter2 := range alphabet {
+			for j := 0; j < 27; j++ {
+
+				rotorB = enigma.RotorConfig{
+					ID:    rotor2,
+					Start: string(letter2)[0],
+					Ring:  j,
+				}
+				var local = calcIC(enigmaSimulate(rotorA, rotorB, content))
+				if local > max {
+					max = local
+					rotorAFinal = rotorA
+					rotorBFinal = rotorB
+				}
+			}
+		}
+
+	}
 	config := make([]enigma.RotorConfig, 4)
-	config[0] = enigma.RotorConfig{
-		ID:    "",
-		Start: 0,
+	config[0] = rotorAFinal
+	config[1] = rotorBFinal
+	config[2] = enigma.RotorConfig{
+		ID:    "IV",
+		Start: "B"[0],
 		Ring:  1,
 	}
-	config[1] = enigma.RotorConfig{
-		ID:    "",
-		Start: 0,
-		Ring:  1,
+	config[3] = enigma.RotorConfig{
+		ID:    "III",
+		Start: "Q"[0],
+		Ring:  16,
 	}
+	return config
+}
+
+func enigmaSimulate(rotorA enigma.RotorConfig, rotorB enigma.RotorConfig, content string) string {
+	config := make([]enigma.RotorConfig, 4)
+	config[0] = rotorA
+	config[1] = rotorB
 	config[2] = enigma.RotorConfig{
 		ID:    "IV",
 		Start: "B"[0],
@@ -96,19 +154,20 @@ func enigmaSimulate() {
 		Ring:  16,
 	}
 
-	plugs := make([]string, 1)
+	plugs := make([]string, 0)
 
-	enigma.NewEnigma(config, "C-thin", plugs)
-
+	var trial = enigma.NewEnigma(config, "C-thin", plugs)
+	return trial.EncodeString(content)
 }
 
 func main() {
 
-	content := readFile("test.txt")
+	content := readFile("ct.txt")
 	tris := readFile("english_tri.txt")
 	var score = trigramScore(processTris(tris), content)
 	fmt.Println(content)
 	fmt.Println(calcIC(content))
 	fmt.Println(score)
 	findSwaps(content)
+	fmt.Println(rotorBrute(content))
 }
