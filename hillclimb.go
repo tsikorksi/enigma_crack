@@ -14,15 +14,15 @@ const englishIOC = 0.06577359255736807
 // IOC of english text, calculated using one time script from the corpus 'The Count of Monte Cristo'
 // 0.06577359255736807
 
+//IC on rotors and config -> IC on plugboard -> trigram on plugboard
+
 func singleSwap(content string, swap string) float64 {
-	//var initial = calcIC(content)
 	content = strings.ReplaceAll(content, swap[0:1], swap[1:2])
 	var final = calcIC(content)
 	return final
 }
 
 func findSwaps(content string) {
-	//var stecker = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	var scoreMap = make(map[string]float64)
 	for _, letter := range alphabet {
 		for _, letter2 := range alphabet {
@@ -43,7 +43,6 @@ func calcIC(text string) float64 {
 	for _, letter := range alphabet {
 		var f = strings.Count(text, string(letter))
 		sum += float64(f * (f - 1))
-		//fmt.Printf("%s: %d\n", string(letter), f)
 	}
 	return sum / (n * (n - 1))
 }
@@ -74,7 +73,6 @@ func readFile(filename string) string {
 	}
 	return string(content)
 }
-
 func enigmaSimulate() {
 	config := make([]enigma.RotorConfig, 4)
 	config[0] = enigma.RotorConfig{
