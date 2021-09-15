@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/emedvedev/enigma"
 	"io/ioutil"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -17,22 +18,31 @@ const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 //IC on rotors and config -> IC on plugboard -> trigram on plugboard
 
+// Swaps two letters in ciphertext and checks the IoC for the new version
 func singleSwap(content string, swap string) float64 {
-	content = strings.ReplaceAll(content, swap[0:1], swap[1:2])
+	var replacer = strings.NewReplacer(swap[0:1], swap[1:2], swap[1:2], swap[0:1])
+	content = replacer.Replace(content)
 	var final = calcIC(content)
 	return final
 }
 
-func findSwaps(content string) {
+// Finds all legal swaps and their
+func findSwaps(content string) map[string]float64 {
 	var scoreMap = make(map[string]float64)
 	for _, letter := range alphabet {
 		for _, letter2 := range alphabet {
-			var score = singleSwap(content, string(letter)+string(letter2))
-			scoreMap[string(letter)+string(letter2)] = score
+			s := strings.Split(string(letter)+string(letter2), "")
+			sort.Strings(s)
+			var joined = strings.Join(s, "")
+			_, k := scoreMap[joined]
+			if letter != letter2 || k {
+				var score = singleSwap(content, joined)
+				scoreMap[joined] = score
+			}
 		}
 
 	}
-	fmt.Println(scoreMap)
+	return scoreMap
 }
 
 func calcIC(text string) float64 {
@@ -104,6 +114,7 @@ func rotorBrute(content string) []enigma.RotorConfig {
 			}
 		}
 	}
+	rotorA = rotorAFinal
 	for _, rotor2 := range rotors {
 		for _, letter2 := range alphabet {
 			for j := 0; j < 27; j++ {
@@ -168,6 +179,6 @@ func main() {
 	fmt.Println(content)
 	fmt.Println(calcIC(content))
 	fmt.Println(score)
-	findSwaps(content)
+	fmt.Println(findSwaps(content))
 	fmt.Println(rotorBrute(content))
 }
