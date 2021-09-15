@@ -19,36 +19,52 @@ const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 //IC on rotors and config -> IC on plugboard -> trigram on plugboard
 
 // Swaps two letters in ciphertext and checks the IoC for the new version
-func singleSwap(content string, swap string) float64 {
-	var replacer = strings.NewReplacer(swap[0:1], swap[1:2], swap[1:2], swap[0:1])
-	content = replacer.Replace(content)
-	var final = calcIC(content)
-	return final
+func singleSwap(content string, swap string, config []enigma.RotorConfig) float64 {
+	var swapList = []string{swap}
+	return calcIC(enigmaSimulate(config[0], config[1], content, swapList))
 }
 
-// Finds all legal swaps and their
-func findSwaps(content string) map[string]float64 {
+// Finds all legal swaps and their IoC after such a swap is made
+func findSwaps(content string, config []enigma.RotorConfig) map[string]float64 {
 	var scoreMap = make(map[string]float64)
 	for _, letter := range alphabet {
 		for _, letter2 := range alphabet {
+			// Because AB = BA ...
 			s := strings.Split(string(letter)+string(letter2), "")
 			sort.Strings(s)
 			var joined = strings.Join(s, "")
 			_, k := scoreMap[joined]
+			// Because AA etc. is not possible...
 			if letter != letter2 || k {
-				var score = singleSwap(content, joined)
+				var score = singleSwap(content, joined, config)
 				scoreMap[joined] = score
 			}
 		}
 
 	}
+
 	return scoreMap
 }
 
-func calcIC(text string) float64 {
+// removes worse performing half of possible swaps
+func extractBetter(swaps map[string]float64) map[string]float64 {
+	var total float64 = 0
+	var vals []float64
+	for _, val := range swaps {
+		total += val
+		vals = append(vals, val)
+	}
+	var avg = total / float64(len(swaps))
+	for key, value := range swaps {
+		if value < avg {
+			delete(swaps, key)
+		}
+	}
+	return swaps
+}
 
-	text = strings.ToUpper(text)
-	text = strings.ReplaceAll(text, " ", "")
+// Calculates IoC
+func calcIC(text string) float64 {
 	n := float64(len(text))
 	var sum = 0.0
 	for _, letter := range alphabet {
@@ -58,6 +74,9 @@ func calcIC(text string) float64 {
 	return sum / (n * (n - 1))
 }
 
+// Generates Trigram score lookup table
+// Trigrams sourced from:
+// https://github.com/torognes/enigma/blob/master/english_trigrams.txt
 func processTris(tris string) map[string]int64 {
 	var trisMap = make(map[string]int64)
 	trisArray := strings.Split(tris, "\n")
@@ -68,6 +87,7 @@ func processTris(tris string) map[string]int64 {
 	return trisMap
 }
 
+// Generates Trigram score for content from pre-generated trigram map
 func trigramScore(trisMap map[string]int64, content string) int64 {
 	var score int64 = 0
 	for key, value := range trisMap {
@@ -77,6 +97,7 @@ func trigramScore(trisMap map[string]int64, content string) int64 {
 	return score
 }
 
+// Read file into string
 func readFile(filename string) string {
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -87,6 +108,7 @@ func readFile(filename string) string {
 
 // Brute force a most likely rotor config
 func rotorBrute(content string) []enigma.RotorConfig {
+	plugs := make([]string, 0)
 	var rotors = [8]string{"I", "II", "V", "VI", "VII", "VIII", "Beta", "Gamma"}
 	var max = calcIC(content)
 	var rotorA enigma.RotorConfig
@@ -105,11 +127,10 @@ func rotorBrute(content string) []enigma.RotorConfig {
 					Start: string(letter)[0],
 					Ring:  i,
 				}
-				var local = calcIC(enigmaSimulate(rotorA, rotorB, content))
+				var local = calcIC(enigmaSimulate(rotorA, rotorB, content, plugs))
 				if local > max {
 					max = local
 					rotorAFinal = rotorA
-					//rotorBFinal = rotorB
 				}
 			}
 		}
@@ -124,7 +145,7 @@ func rotorBrute(content string) []enigma.RotorConfig {
 					Start: string(letter2)[0],
 					Ring:  j,
 				}
-				var local = calcIC(enigmaSimulate(rotorA, rotorB, content))
+				var local = calcIC(enigmaSimulate(rotorA, rotorB, content, plugs))
 				if local > max {
 					max = local
 					rotorAFinal = rotorA
@@ -150,7 +171,7 @@ func rotorBrute(content string) []enigma.RotorConfig {
 	return config
 }
 
-func enigmaSimulate(rotorA enigma.RotorConfig, rotorB enigma.RotorConfig, content string) string {
+func enigmaSimulate(rotorA enigma.RotorConfig, rotorB enigma.RotorConfig, content string, plugs []string) string {
 	config := make([]enigma.RotorConfig, 4)
 	config[0] = rotorA
 	config[1] = rotorB
@@ -165,7 +186,7 @@ func enigmaSimulate(rotorA enigma.RotorConfig, rotorB enigma.RotorConfig, conten
 		Ring:  16,
 	}
 
-	plugs := make([]string, 0)
+	// plugs := make([]string, 0)
 
 	var trial = enigma.NewEnigma(config, "C-thin", plugs)
 	return trial.EncodeString(content)
@@ -174,11 +195,14 @@ func enigmaSimulate(rotorA enigma.RotorConfig, rotorB enigma.RotorConfig, conten
 func main() {
 
 	content := readFile("ct.txt")
+	content = enigma.SanitizePlaintext(content)
 	tris := readFile("english_tri.txt")
 	var score = trigramScore(processTris(tris), content)
 	fmt.Println(content)
 	fmt.Println(calcIC(content))
 	fmt.Println(score)
-	fmt.Println(findSwaps(content))
-	fmt.Println(rotorBrute(content))
+	var config = rotorBrute(content)
+	var swaps = extractBetter(findSwaps(content, config))
+
+	fmt.Println(len(swaps))
 }
