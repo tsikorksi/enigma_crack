@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/emedvedev/enigma"
 	"io/ioutil"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -46,17 +47,23 @@ func findSwaps(content string, config []enigma.RotorConfig) map[string]float64 {
 	return scoreMap
 }
 
-// removes worse performing half of possible swaps
+// removes worse performing 2/3rds of possible swaps
 func extractBetter(swaps map[string]float64) map[string]float64 {
 	var total float64 = 0
-	var vals []float64
+	var values []float64
 	for _, val := range swaps {
 		total += val
-		vals = append(vals, val)
+		values = append(values, val)
 	}
 	var avg = total / float64(len(swaps))
+
+	var xTotal float64
+	for _, x := range values {
+		xTotal += math.Pow(x-avg, 2)
+	}
+
 	for key, value := range swaps {
-		if value < avg {
+		if value < avg+math.Sqrt(xTotal/float64(len(swaps))) {
 			delete(swaps, key)
 		}
 	}
