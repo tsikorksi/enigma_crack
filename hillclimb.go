@@ -63,7 +63,8 @@ func extractBetter(swaps map[string]float64) map[string]float64 {
 	}
 
 	for key, value := range swaps {
-		if value < avg+math.Sqrt(xTotal/float64(len(swaps))) {
+		// + (0.75 * math.Sqrt(xTotal/float64(len(swaps))))
+		if value < avg {
 			delete(swaps, key)
 		}
 	}
@@ -102,6 +103,59 @@ func trigramScore(trisMap map[string]int64, content string) int64 {
 		score += count * value
 	}
 	return score
+}
+
+type Pair struct {
+	Key   string
+	Value int64
+}
+
+// PairList All the Pairlist nonesense stolen from:
+// https://medium.com/@kdnotes/how-to-sort-golang-maps-by-value-and-key-eedc1199d944
+type PairList []Pair
+
+// Since golang maps are bad
+
+func (p PairList) Len() int           { return len(p) }
+func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p PairList) Less(i, j int) bool { return p[i].Value > p[j].Value }
+
+func trySwaps(swaps map[string]float64, config []enigma.RotorConfig, trisMap map[string]int64, content string) []string {
+	var finalSwaps []string
+	for key := range swaps {
+		finalSwaps = append(finalSwaps, key)
+	}
+	//var plugboard = finalSwaps[0:10]
+	//var score = trigramScore(trisMap, enigmaSimulate(config[0], config[1], content, []string{}))
+	var plugboardMap = make(map[string]int64)
+
+	//var combos = combinations.Combinations(finalSwaps, 10)
+	for _, combo := range finalSwaps {
+		var tempSwap = []string{combo}
+		var tempScore = trigramScore(trisMap, enigmaSimulate(config[0], config[1], content, tempSwap))
+		plugboardMap[tempSwap[0]] = tempScore
+	}
+
+	var plugboard = make([]string, 0, 10)
+
+	var pairList PairList
+
+	for key, value := range plugboardMap {
+		pairList = append(pairList, Pair{key, value})
+	}
+	sort.Sort(pairList)
+	var count = 0
+
+	for len(plugboard) < 10 {
+		if !strings.ContainsAny(strings.Join(plugboard, ""), pairList[count].Key) {
+			plugboard = append(plugboard, pairList[count].Key)
+		}
+		count++
+	}
+
+	// remove duplicate letter swaps
+
+	return plugboard
 }
 
 // Read file into string
@@ -204,12 +258,22 @@ func main() {
 	content := readFile("ct.txt")
 	content = enigma.SanitizePlaintext(content)
 	tris := readFile("english_tri.txt")
-	var score = trigramScore(processTris(tris), content)
-	fmt.Println(content)
-	fmt.Println(calcIC(content))
-	fmt.Println(score)
+	var trisMap = processTris(tris)
 	var config = rotorBrute(content)
 	var swaps = extractBetter(findSwaps(content, config))
+	var plugboard = trySwaps(swaps, config, trisMap, content)
 
-	fmt.Println(len(swaps))
+	for _, v := range config {
+		fmt.Print(v.ID + " ")
+	}
+	fmt.Println()
+	for _, v := range config {
+		fmt.Print(string(v.Start) + " ")
+	}
+	fmt.Println()
+	for _, v := range plugboard {
+		fmt.Print(string(v) + " ")
+	}
+	fmt.Println()
+	fmt.Println(enigmaSimulate(config[0], config[1], content, plugboard))
 }
