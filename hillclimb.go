@@ -251,6 +251,7 @@ func main() {
 	var config = rotorBrute(content)
 	var swaps = extractBetter(findSwaps(content, config))
 	var plugboard = trySwaps(swaps, config, trisMap, content)
+	sort.Strings(plugboard)
 
 	for _, v := range config {
 		fmt.Print(v.ID + " ")
