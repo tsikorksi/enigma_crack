@@ -84,7 +84,7 @@ func calcIC(text string) float64 {
 
 // Generates Trigram score lookup table
 // Trigrams sourced from:
-// https://github.com/torognes/enigma/blob/master/english_trigrams.txt
+// http://practicalcryptography.com/cryptanalysis/letter-frequencies-various-languages/english-letter-frequencies/
 func processTris(tris string) map[string]int64 {
 	var trisMap = make(map[string]int64)
 	trisArray := strings.Split(tris, "\n")
@@ -170,17 +170,18 @@ func readFile(filename string) string {
 // Brute force a most likely rotor config
 func rotorBrute(content string) []enigma.RotorConfig {
 	plugs := make([]string, 0)
-	var rotors = [8]string{"I", "II", "V", "VI", "VII", "VIII", "Beta", "Gamma"}
+	var rotorsFirst = [6]string{"Beta", "Gamma"}
+	var rotorsSecond = [6]string{"I", "II", "V", "VI"}
 	var max = calcIC(content)
 	var rotorA enigma.RotorConfig
 	var rotorB = enigma.RotorConfig{
-		ID:    "IV",
+		ID:    "I",
 		Start: "B"[0],
 		Ring:  1,
 	}
 	var rotorAFinal enigma.RotorConfig
 	var rotorBFinal enigma.RotorConfig
-	for _, rotor := range rotors {
+	for _, rotor := range rotorsFirst {
 		for _, letter := range alphabet {
 			for i := 0; i < 27; i++ {
 				rotorA = enigma.RotorConfig{
@@ -197,7 +198,7 @@ func rotorBrute(content string) []enigma.RotorConfig {
 		}
 	}
 	rotorA = rotorAFinal
-	for _, rotor2 := range rotors {
+	for _, rotor2 := range rotorsSecond {
 		for _, letter2 := range alphabet {
 			for j := 0; j < 27; j++ {
 
@@ -255,7 +256,7 @@ func enigmaSimulate(rotorA enigma.RotorConfig, rotorB enigma.RotorConfig, conten
 
 func main() {
 
-	content := readFile("ct.txt")
+	content := readFile("test.txt")
 	content = enigma.SanitizePlaintext(content)
 	tris := readFile("english_tri.txt")
 	var trisMap = processTris(tris)
