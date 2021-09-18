@@ -170,52 +170,40 @@ func readFile(filename string) string {
 // Brute force a most likely rotor config
 func rotorBrute(content string) []enigma.RotorConfig {
 	plugs := make([]string, 0)
-	var rotorsFirst = [6]string{"Beta", "Gamma"}
-	var rotorsSecond = [6]string{"I", "II", "V", "VI"}
+	var rotorsFirst = [2]string{"Beta", "Gamma"}
+	var rotorsSecond = [4]string{"I", "II", "V", "VI"}
 	var max = calcIC(content)
 	var rotorA enigma.RotorConfig
-	var rotorB = enigma.RotorConfig{
-		ID:    "I",
-		Start: "B"[0],
-		Ring:  1,
-	}
+	var rotorB enigma.RotorConfig
 	var rotorAFinal enigma.RotorConfig
 	var rotorBFinal enigma.RotorConfig
 	for _, rotor := range rotorsFirst {
 		for _, letter := range alphabet {
-			for i := 0; i < 27; i++ {
-				rotorA = enigma.RotorConfig{
-					ID:    rotor,
-					Start: string(letter)[0],
-					Ring:  i,
-				}
-				var local = calcIC(enigmaSimulate(rotorA, rotorB, content, plugs))
-				if local > max {
-					max = local
-					rotorAFinal = rotorA
-				}
+			rotorA = enigma.RotorConfig{
+				ID:    rotor,
+				Start: string(letter)[0],
+				Ring:  1,
 			}
-		}
-	}
-	rotorA = rotorAFinal
-	for _, rotor2 := range rotorsSecond {
-		for _, letter2 := range alphabet {
-			for j := 0; j < 27; j++ {
+			for _, rotor2 := range rotorsSecond {
+				for _, letter2 := range alphabet {
 
-				rotorB = enigma.RotorConfig{
-					ID:    rotor2,
-					Start: string(letter2)[0],
-					Ring:  j,
+					rotorB = enigma.RotorConfig{
+						ID:    rotor2,
+						Start: string(letter2)[0],
+						Ring:  1,
+					}
+					var local = calcIC(enigmaSimulate(rotorA, rotorB, content, plugs))
+					if local > max {
+						max = local
+						rotorAFinal = rotorA
+						rotorBFinal = rotorB
+					}
+
 				}
-				var local = calcIC(enigmaSimulate(rotorA, rotorB, content, plugs))
-				if local > max {
-					max = local
-					rotorAFinal = rotorA
-					rotorBFinal = rotorB
-				}
+
 			}
-		}
 
+		}
 	}
 	config := make([]enigma.RotorConfig, 4)
 	config[0] = rotorAFinal
