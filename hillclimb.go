@@ -85,7 +85,7 @@ func calcIC(text string) float64 {
 // Generates Trigram score lookup table
 // Trigrams sourced from:
 // http://practicalcryptography.com/cryptanalysis/letter-frequencies-various-languages/english-letter-frequencies/
-func processTris(tris string) map[string]int64 {
+func processGrams(tris string) map[string]int64 {
 	var trisMap = make(map[string]int64)
 	trisArray := strings.Split(tris, "\n")
 	for _, line := range trisArray {
@@ -96,7 +96,7 @@ func processTris(tris string) map[string]int64 {
 }
 
 // Generates Trigram score for content from pre-generated trigram map
-func trigramScore(trisMap map[string]int64, content string) int64 {
+func gramScore(trisMap map[string]int64, content string) int64 {
 	var score int64 = 0
 	for key, value := range trisMap {
 		var count = int64(strings.Count(content, key))
@@ -114,7 +114,7 @@ type Pair struct {
 // https://groups.google.com/g/golang-nuts/c/FT7cjmcL7gw
 type PairList []Pair
 
-// Since golang maps are bad
+// Since golang maps are bad, and I couldn't work out another way to sort a map by value
 
 func (p PairList) Len() int           { return len(p) }
 func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
@@ -126,13 +126,13 @@ func trySwaps(swaps map[string]float64, config []enigma.RotorConfig, trisMap map
 		finalSwaps = append(finalSwaps, key)
 	}
 	//var plugboard = finalSwaps[0:10]
-	//var score = trigramScore(trisMap, enigmaSimulate(config[0], config[1], content, []string{}))
+	//var score = gramScore(trisMap, enigmaSimulate(config[0], config[1], content, []string{}))
 	var plugboardMap = make(map[string]int64)
 
 	//var combos = combinations.Combinations(finalSwaps, 10)
 	for _, combo := range finalSwaps {
 		var tempSwap = []string{combo}
-		var tempScore = trigramScore(trisMap, enigmaSimulate(config[0], config[1], content, tempSwap))
+		var tempScore = gramScore(trisMap, enigmaSimulate(config[0], config[1], content, tempSwap))
 		plugboardMap[tempSwap[0]] = tempScore
 	}
 
@@ -242,10 +242,10 @@ func enigmaSimulate(rotorA enigma.RotorConfig, rotorB enigma.RotorConfig, conten
 
 func main() {
 
-	content := readFile("test.txt")
+	content := readFile("ct.txt")
 	content = enigma.SanitizePlaintext(content)
-	tris := readFile("english_tri.txt")
-	var trisMap = processTris(tris)
+	tris := readFile("english_bi.txt")
+	var trisMap = processGrams(tris)
 	var config = rotorBrute(content)
 	var swaps = extractBetter(findSwaps(content, config))
 	var plugboard = trySwaps(swaps, config, trisMap, content)
