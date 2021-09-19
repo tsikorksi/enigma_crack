@@ -63,7 +63,7 @@ func extractBetter(swaps map[string]float64) map[string]float64 {
 	}
 
 	for key, value := range swaps {
-		// + (0.75 * math.Sqrt(xTotal/float64(len(swaps))))
+		//+ (0.25 * math.Sqrt(xTotal/float64(len(swaps))))
 		if value < avg {
 			delete(swaps, key)
 		}
@@ -110,15 +110,15 @@ type Pair struct {
 	Value int64
 }
 
-// PairList All the Pairlist nonesense stolen from:
-// https://medium.com/@kdnotes/how-to-sort-golang-maps-by-value-and-key-eedc1199d944
+// PairList All the Pairlist nonsense stolen from:
+// https://groups.google.com/g/golang-nuts/c/FT7cjmcL7gw
 type PairList []Pair
 
 // Since golang maps are bad
 
 func (p PairList) Len() int           { return len(p) }
 func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-func (p PairList) Less(i, j int) bool { return p[i].Value > p[j].Value }
+func (p PairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
 
 func trySwaps(swaps map[string]float64, config []enigma.RotorConfig, trisMap map[string]int64, content string) []string {
 	var finalSwaps []string
@@ -143,17 +143,15 @@ func trySwaps(swaps map[string]float64, config []enigma.RotorConfig, trisMap map
 	for key, value := range plugboardMap {
 		pairList = append(pairList, Pair{key, value})
 	}
-	sort.Sort(pairList)
+	sort.Sort(sort.Reverse(pairList))
 	var count = 0
-
+	// remove duplicate letter swaps, selecting best
 	for len(plugboard) < 10 {
 		if !strings.ContainsAny(strings.Join(plugboard, ""), pairList[count].Key) {
 			plugboard = append(plugboard, pairList[count].Key)
 		}
 		count++
 	}
-
-	// remove duplicate letter swaps
 
 	return plugboard
 }
