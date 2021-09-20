@@ -20,14 +20,16 @@ const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 //IC on rotors and config -> IC on plugboard -> trigram on plugboard
 
 // Swaps two letters in ciphertext and checks the IoC for the new version
-func singleSwap(content string, swap string, config []enigma.RotorConfig) float64 {
-	var swapList = []string{swap}
-	return calcIC(enigmaSimulate(config[0], config[1], content, swapList))
+func singleSwap(content string, config []enigma.RotorConfig, swapList []string) float64 {
+	return math.Round(calcIC(enigmaSimulate(config[0], config[1], content, swapList))*10000) / 10000
 }
 
 // Finds all legal swaps and their IoC after such a swap is made
 func findSwaps(content string, config []enigma.RotorConfig) map[string]float64 {
+	var initial = math.Round(calcIC(content)*10000) / 10000
 	var scoreMap = make(map[string]float64)
+	var swapList = make([]string, 0, 10)
+	var score float64
 	for _, letter := range alphabet {
 		for _, letter2 := range alphabet {
 			// Because AB = BA ...
@@ -37,11 +39,29 @@ func findSwaps(content string, config []enigma.RotorConfig) map[string]float64 {
 			_, k := scoreMap[joined]
 			// Because AA etc. is not possible...
 			if letter != letter2 || k {
-				var score = singleSwap(content, joined, config)
-				scoreMap[joined] = score
+
+				if strings.ContainsAny(strings.Join(swapList, ""), joined) {
+					for index, value := range swapList {
+						if strings.Contains(value, string(letter2)) {
+							swapList = append(swapList[:index], swapList[index+1:]...)
+						}
+					}
+					swapList = append(swapList, string(letter)+string(letter))
+					score = singleSwap(content, config, swapList)
+
+					swapList = swapList[:len(swapList)-1]
+					var altScore = singleSwap(content, config, swapList)
+
+				}
+				swapList = append(swapList, joined)
+				score = singleSwap(content, config, swapList)
+				if score > initial {
+					scoreMap[joined] = score
+					initial = score
+				}
+
 			}
 		}
-
 	}
 
 	return scoreMap
@@ -241,7 +261,6 @@ func enigmaSimulate(rotorA enigma.RotorConfig, rotorB enigma.RotorConfig, conten
 }
 
 func main() {
-
 	content := readFile("ct.txt")
 	content = enigma.SanitizePlaintext(content)
 	tris := readFile("english_tri.txt")
