@@ -270,3 +270,6 @@ D A B Q
 AG BN DI ER FP HJ KU LW MS QY
 // likely correct map:
 AG BN DI ER FY HJ KU LW WS PQ
+
+//trigram pass:
+AM BN DQ ER FS GU HJ IY KP LW

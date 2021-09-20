@@ -244,7 +244,7 @@ func main() {
 
 	content := readFile("ct.txt")
 	content = enigma.SanitizePlaintext(content)
-	tris := readFile("english_bi.txt")
+	tris := readFile("english_tri.txt")
 	var trisMap = processGrams(tris)
 	var config = rotorBrute(content)
 	var swaps = extractBetter(findSwaps(content, config))
